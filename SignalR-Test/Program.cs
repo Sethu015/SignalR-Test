@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using SignalR_Test.EFModels;
 using SignalR_Test.HubConfig;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,6 +10,12 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+//Add DB Context
+builder.Services.AddDbContextPool<SignalrDbContext>(options =>
+{
+
+    options.UseSqlServer(builder.Configuration.GetConnectionString("MyConnectionString"));
+});
 //Add CORS
 builder.Services.AddCors(options =>
 {
