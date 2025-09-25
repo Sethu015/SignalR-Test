@@ -6,9 +6,6 @@ namespace SignalR_Test.EFModels;
 
 public partial class SignalrDbContext : DbContext
 {
-    public SignalrDbContext()
-    {
-    }
 
     public SignalrDbContext(DbContextOptions<SignalrDbContext> options)
         : base(options)
