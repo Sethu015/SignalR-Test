@@ -14,7 +14,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContextPool<SignalrDbContext>(options =>
 {
 
-    options.UseSqlServer(builder.Configuration.GetConnectionString("MyConnectionString"));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("MyConnection"));
 });
 //Add CORS
 builder.Services.AddCors(options =>
