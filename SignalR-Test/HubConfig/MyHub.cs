@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using SignalR_Test.EFModels;
 
 namespace SignalR_Test.HubConfig
@@ -42,6 +43,28 @@ namespace SignalR_Test.HubConfig
             else
             {
                 await Clients.Client(currentSignalrId).SendAsync("AuthMeResponseFail");
+            }
+        }
+
+        public async Task ReAuthMe(string personId)
+        {
+            var connectionId = Context.ConnectionId;
+            var existingPerson = await context.Persons.SingleOrDefaultAsync(p => p.Id.ToString() == personId);
+            if(existingPerson != null)
+            {
+                var connection = new Connections()
+                {
+                    PersonId = existingPerson.Id,
+                    SignalrId = connectionId,
+                    Timestamp = DateTime.Now
+                };
+                await context.Connections.AddAsync(connection);
+                await context.SaveChangesAsync();
+                await Clients.Caller.SendAsync("ReAuthMeResponseSuccess", existingPerson);
+            }
+            else
+            {
+                await Clients.Client(connectionId).SendAsync("ReAuthMeResponseFail");
             }
         }
     }
