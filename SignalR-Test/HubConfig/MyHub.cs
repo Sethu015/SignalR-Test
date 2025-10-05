@@ -1,11 +1,23 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using SignalR_Test.EFModels;
+using System;
 
 namespace SignalR_Test.HubConfig
 {
-    public class MyHub(SignalrDbContext context) : Hub
+    public partial class MyHub(SignalrDbContext context) : Hub
     {
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            Guid currentUserId = context.Connections.Where(c => c.SignalrId == Context.ConnectionId)
+                .Select(c => c.PersonId)
+                .FirstOrDefault();
+            context.Connections.RemoveRange(context.Connections.Where(c => c.PersonId == currentUserId));
+            await context.SaveChangesAsync();
+            await Clients.Others.SendAsync("UserOff", currentUserId);
+            await base.OnDisconnectedAsync(exception);
+        }
         public async Task AskServer(string textFromClient)
         {
             string tempString = string.Empty;
@@ -37,8 +49,11 @@ namespace SignalR_Test.HubConfig
                 await context.Connections.AddAsync(connections);
                 await context.SaveChangesAsync();
 
+                User newUser = new User(person.Id, person.Name, currentSignalrId);
+
                 //Bettter Method
-                await Clients.Caller.SendAsync("AuthMeResponseSuccess", person);
+                await Clients.Caller.SendAsync("AuthMeResponseSuccess", newUser);
+                await Clients.AllExcept(currentSignalrId).SendAsync("UserOn", newUser);
             }
             else
             {
@@ -60,12 +75,23 @@ namespace SignalR_Test.HubConfig
                 };
                 await context.Connections.AddAsync(connection);
                 await context.SaveChangesAsync();
-                await Clients.Caller.SendAsync("ReAuthMeResponseSuccess", existingPerson);
+                User newUser = new User(existingPerson.Id, existingPerson.Name, connectionId);
+                await Clients.Caller.SendAsync("ReAuthMeResponseSuccess", newUser);
+                await Clients.Others.SendAsync("UserOn", newUser);
             }
             else
             {
                 await Clients.Client(connectionId).SendAsync("ReAuthMeResponseFail");
             }
+        }
+
+        public async Task LogOut(Guid personId)
+        {
+            var connectionId = Context.ConnectionId;
+            context.Connections.RemoveRange(context.Connections.Where(c => c.PersonId == personId));
+            await context.SaveChangesAsync();
+            await Clients.Caller.SendAsync("LogOutResponse");
+            await Clients.Others.SendAsync("UserOff", personId);
         }
     }
 }
